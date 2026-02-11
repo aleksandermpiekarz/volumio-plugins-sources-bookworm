@@ -4,6 +4,7 @@ var libQ = require('kew');
 var fs = require('fs-extra');
 var config = new (require('v-conf'))();
 var io = require('socket.io-client');
+var cp = require('child_process');
 
 module.exports = volumeWatcher;
 
@@ -16,7 +17,37 @@ function volumeWatcher(context) {
   this.socket = null;
   this.lastVolume = null;
   this.toastCooldown = false;
+  this.irLock = false;
+  this.irCooldownMs = 120;
 }
+
+volumeWatcher.prototype._sendIr = function (dir) {
+    var self = this;
+
+    if (self.irLock) return;
+    self.irLock = true;
+
+    var dev = '/dev/lirc0';
+    var carrier = '36000';
+
+    var file = dir === 'UP'
+        ? __dirname + '/signals/vol_up.raw'
+        : __dirname + '/signals/vol_down.raw';
+
+    cp.execFile(
+        'ir-ctl',
+        ['-d', dev, '--send=' + file, '--carrier=' + carrier],
+        { timeout: 1500 },
+        function (err, stdout, stderr) {
+            if (err) {
+                self.logger.error('[volume-watcher] IR send failed: ' + (stderr || err.message || err));
+            }
+            setTimeout(function () {
+                self.irLock = false;
+            }, self.irCooldownMs);
+        }
+    );
+};
 
 volumeWatcher.prototype.onVolumioStart = function () {
   var configFile = this.commandRouter.pluginManager.getConfigurationFile(this.context, 'config.json');
@@ -85,6 +116,7 @@ volumeWatcher.prototype._connectSocket = function () {
 
     var dir = v > self.lastVolume ? 'UP' : 'DOWN';
     self.logger.info('[volume-watcher] VOLUME ' + dir + ' ' + self.lastVolume + ' -> ' + v);
+    self._sendIr(dir);
 
     if (!self.toastCooldown) {
       self.toastCooldown = true;
