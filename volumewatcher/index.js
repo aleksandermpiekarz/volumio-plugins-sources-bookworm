@@ -18,7 +18,7 @@ function volumeWatcher(context) {
   this.lastVolume = null;
   this.toastCooldown = false;
   this.irLock = false;
-  this.irCooldownMs = 120;
+  this.irCooldownMs = 60;
 }
 
 volumeWatcher.prototype._sendIr = function (dir) {
@@ -31,7 +31,7 @@ volumeWatcher.prototype._sendIr = function (dir) {
     var carrier = '36000';
 
     var file = dir === 'UP'
-        ? __dirname + '/signals/vol_up.raw'
+        ? __dirname + '/signals/vol_up.ir'
         : __dirname + '/signals/vol_down.ir';
 
     cp.execFile(
