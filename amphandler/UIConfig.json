@@ -1,7 +1,20 @@
 {
   "page": {
-    "label": "TRANSLATE.PLUGIN_CONFIGURATION"
+    "label": "AMP Handler",
+    "icon": "fa-volume-up"
   },
   "sections": [
+    {
+      "id": "test",
+      "element": "section",
+      "label": "TEST",
+      "content": [
+        {
+          "id": "label",
+          "element": "text",
+          "value": "PLUGIN DZIAŁA"
+        }
+      ]
+    }
   ]
 }
