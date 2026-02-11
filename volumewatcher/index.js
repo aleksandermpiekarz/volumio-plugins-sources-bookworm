@@ -32,7 +32,7 @@ volumeWatcher.prototype._sendIr = function (dir) {
 
     var file = dir === 'UP'
         ? __dirname + '/signals/vol_up.raw'
-        : __dirname + '/signals/vol_down.raw';
+        : __dirname + '/signals/vol_down.ir';
 
     cp.execFile(
         'ir-ctl',
