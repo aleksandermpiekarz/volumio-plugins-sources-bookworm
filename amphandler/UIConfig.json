@@ -5,14 +5,118 @@
   },
   "sections": [
     {
-      "id": "test",
+      "id": "power",
       "element": "section",
-      "label": "TEST",
+      "label": "Power",
+      "icon": "fa-power-off",
       "content": [
         {
-          "id": "label",
+          "id": "powerHint",
           "element": "text",
-          "value": "PLUGIN DZIAŁA"
+          "value": "Włącz / wyłącz wzmacniacz."
+        },
+        {
+          "id": "power",
+          "element": "button",
+          "label": "Power",
+          "icon": "fa-power-off",
+          "onClick": {
+            "type": "controller",
+            "controller": "user_interface/amphandler",
+            "method": "setUIConfig"
+          }
+        }
+      ]
+    },
+    {
+      "id": "volume",
+      "element": "section",
+      "label": "Volume",
+      "icon": "fa-volume-up",
+      "content": [
+        {
+          "id": "volHint",
+          "element": "text",
+          "value": "Regulacja głośności IR."
+        },
+        {
+          "id": "volUp",
+          "element": "button",
+          "label": "Volume +",
+          "icon": "fa-plus",
+          "onClick": {
+            "type": "controller",
+            "controller": "user_interface/amphandler",
+            "method": "setUIConfig"
+          }
+        },
+        {
+          "id": "volDown",
+          "element": "button",
+          "label": "Volume -",
+          "icon": "fa-minus",
+          "onClick": {
+            "type": "controller",
+            "controller": "user_interface/amphandler",
+            "method": "setUIConfig"
+          }
+        }
+      ]
+    },
+    {
+      "id": "sources",
+      "element": "section",
+      "label": "Sources",
+      "icon": "fa-exchange",
+      "content": [
+        {
+          "id": "srcHint",
+          "element": "text",
+          "value": "Wybór wejścia (Source)."
+        },
+        {
+          "id": "linePhono",
+          "element": "button",
+          "label": "PHONO",
+          "icon": "fa-dot-circle-o",
+          "onClick": {
+            "type": "controller",
+            "controller": "user_interface/amphandler",
+            "method": "setUIConfig"
+          }
+        },
+        {
+          "id": "lineCd",
+          "element": "button",
+          "label": "CD",
+          "icon": "fa-music",
+          "onClick": {
+            "type": "controller",
+            "controller": "user_interface/amphandler",
+            "method": "setUIConfig"
+          }
+        },
+        {
+          "id": "lineOne",
+          "element": "button",
+          "label": "LINE 1",
+          "icon": "fa-sign-in",
+          "onClick": {
+            "type": "controller",
+            "controller": "user_interface/amphandler",
+            "method": "setUIConfig"
+          }
+        },
+        {
+          "id": "lineTwo",
+          "element": "button",
+          "label": "LINE 2",
+          "icon": "fa-sign-in",
+          "onClick": {
+            "type": "controller",
+            "controller": "user_interface/amphandler",
+            "method": "setUIConfig"
+          }
         }
       ]
     }

@@ -1,267 +1,142 @@
 'use strict';
 
 var libQ = require('kew');
-var fs=require('fs-extra');
+var fs = require('fs-extra');
 var config = new (require('v-conf'))();
-var exec = require('child_process').exec;
-var execSync = require('child_process').execSync;
-
+var execFile = require('child_process').execFile;
 
 module.exports = amphandler;
+
 function amphandler(context) {
-	var self = this;
+    this.context = context;
+    this.commandRouter = this.context.coreCommand;
+    this.logger = this.context.logger;
+    this.configManager = this.context.configManager;
 
-	this.context = context;
-	this.commandRouter = this.context.coreCommand;
-	this.logger = this.context.logger;
-	this.configManager = this.context.configManager;
+    this.irLock = false;
+    this.irCooldownMs = 80;
 
+    this.irDevice = '/dev/lirc0';
+    this.irCarrier = '36000';
 }
 
+amphandler.prototype.onVolumioStart = function () {
+    var configFile = this.commandRouter.pluginManager.getConfigurationFile(this.context, 'config.json');
+    this.config = new (require('v-conf'))();
+    this.config.loadFile(configFile);
 
+    var dev = this.config.get('irDevice');
+    var carrier = this.config.get('irCarrier');
+    var cooldown = this.config.get('irCooldownMs');
 
-amphandler.prototype.onVolumioStart = function()
-{
-	var self = this;
-	var configFile=this.commandRouter.pluginManager.getConfigurationFile(this.context,'config.json');
-	this.config = new (require('v-conf'))();
-	this.config.loadFile(configFile);
-
-    return libQ.resolve();
-}
-
-amphandler.prototype.onStart = function() {
-    var self = this;
-	var defer=libQ.defer();
-
-
-	// Once the Plugin has successfull started resolve the promise
-	defer.resolve();
-
-    return defer.promise;
-};
-
-amphandler.prototype.onStop = function() {
-    var self = this;
-    var defer=libQ.defer();
-
-    // Once the Plugin has successfull stopped resolve the promise
-    defer.resolve();
+    if (dev) this.irDevice = dev;
+    if (carrier) this.irCarrier = String(carrier);
+    if (typeof cooldown === 'number') this.irCooldownMs = cooldown;
 
     return libQ.resolve();
 };
 
-amphandler.prototype.onRestart = function() {
-    var self = this;
-    // Optional, use if you need it
+amphandler.prototype.onStart = function () {
+    return libQ.resolve();
 };
 
+amphandler.prototype.onStop = function () {
+    return libQ.resolve();
+};
 
-// Configuration Methods -----------------------------------------------------------------------------
+amphandler.prototype.onRestart = function () {
+    return libQ.resolve();
+};
 
-amphandler.prototype.getUIConfig = function() {
+amphandler.prototype.getUIConfig = function () {
     var defer = libQ.defer();
     var self = this;
-
     var lang_code = this.commandRouter.sharedVars.get('language_code');
 
-    self.commandRouter.i18nJson(__dirname+'/i18n/strings_'+lang_code+'.json',
-        __dirname+'/i18n/strings_en.json',
-        __dirname + '/UIConfig.json')
-        .then(function(uiconf)
-        {
-
-
+    self.commandRouter
+        .i18nJson(
+            __dirname + '/i18n/strings_' + lang_code + '.json',
+            __dirname + '/i18n/strings_en.json',
+            __dirname + '/UIConfig.json'
+        )
+        .then(function (uiconf) {
             defer.resolve(uiconf);
         })
-        .fail(function()
-        {
+        .fail(function () {
             defer.reject(new Error());
         });
 
     return defer.promise;
 };
 
-amphandler.prototype.getConfigurationFiles = function() {
-	return ['config.json'];
-}
-
-amphandler.prototype.setUIConfig = function(data) {
-	var self = this;
-	//Perform your installation tasks here
+amphandler.prototype.getConfigurationFiles = function () {
+    return ['config.json'];
 };
 
-amphandler.prototype.getConf = function(varName) {
-	var self = this;
-	//Perform your installation tasks here
-};
-
-amphandler.prototype.setConf = function(varName, varValue) {
-	var self = this;
-	//Perform your installation tasks here
-};
-
-
-
-// Playback Controls ---------------------------------------------------------------------------------------
-// If your plugin is not a music_sevice don't use this part and delete it
-
-
-amphandler.prototype.addToBrowseSources = function () {
-
-	// Use this function to add your music service plugin to music sources
-    //var data = {name: 'Spotify', uri: 'spotify',plugin_type:'music_service',plugin_name:'spop'};
-    this.commandRouter.volumioAddToBrowseSources(data);
-};
-
-amphandler.prototype.handleBrowseUri = function (curUri) {
+amphandler.prototype._sendIrFile = function (filename) {
     var self = this;
 
-    //self.commandRouter.logger.info(curUri);
-    var response;
+    if (self.irLock) return libQ.resolve();
+    self.irLock = true;
 
+    var defer = libQ.defer();
+    var fullPath = __dirname + '/signals/' + filename;
 
-    return response;
+    execFile(
+        'ir-ctl',
+        ['-d', self.irDevice, '--send=' + fullPath, '--carrier=' + self.irCarrier],
+        { timeout: 1500 },
+        function (err, stdout, stderr) {
+            setTimeout(function () {
+                self.irLock = false;
+            }, self.irCooldownMs);
+
+            if (err) {
+                self.logger.error('[amphandler] IR send failed (' + filename + '): ' + (stderr || err.message || err));
+                defer.resolve();
+                return;
+            }
+
+            self.logger.info('[amphandler] IR sent: ' + filename);
+            defer.resolve();
+        }
+    );
+
+    return defer.promise;
 };
 
+amphandler.prototype.setUIConfig = function (data) {
+    var self = this;
 
+    if (!data) return libQ.resolve();
 
-// Define a method to clear, add, and play an array of tracks
-amphandler.prototype.clearAddPlayTrack = function(track) {
-	var self = this;
-	self.commandRouter.pushConsoleMessage('[' + Date.now() + '] ' + 'amphandler::clearAddPlayTrack');
+    var key = Object.keys(data).find(function (k) {
+        return data[k] === true;
+    });
 
-	self.commandRouter.logger.info(JSON.stringify(track));
+    if (!key) return libQ.resolve();
 
-	return self.sendSpopCommand('uplay', [track.uri]);
+    var map = {
+        power: 'power.ir',
+        volUp: 'vol_up.ir',
+        volDown: 'vol_down.ir',
+        linePhono: 'line_phono.ir',
+        lineCd: 'line_cd.ir',
+        lineOne: 'line_one.ir',
+        lineTwo: 'line_two.ir'
+    };
+
+    var file = map[key];
+    if (!file) return libQ.resolve();
+
+    return self._sendIrFile(file);
 };
 
-amphandler.prototype.seek = function (timepos) {
-    this.commandRouter.pushConsoleMessage('[' + Date.now() + '] ' + 'amphandler::seek to ' + timepos);
-
-    return this.sendSpopCommand('seek '+timepos, []);
+amphandler.prototype.getConf = function (varName) {
+    return this.config.get(varName);
 };
 
-// Stop
-amphandler.prototype.stop = function() {
-	var self = this;
-	self.commandRouter.pushConsoleMessage('[' + Date.now() + '] ' + 'amphandler::stop');
-
-
-};
-
-// Spop pause
-amphandler.prototype.pause = function() {
-	var self = this;
-	self.commandRouter.pushConsoleMessage('[' + Date.now() + '] ' + 'amphandler::pause');
-
-
-};
-
-// Get state
-amphandler.prototype.getState = function() {
-	var self = this;
-	self.commandRouter.pushConsoleMessage('[' + Date.now() + '] ' + 'amphandler::getState');
-
-
-};
-
-//Parse state
-amphandler.prototype.parseState = function(sState) {
-	var self = this;
-	self.commandRouter.pushConsoleMessage('[' + Date.now() + '] ' + 'amphandler::parseState');
-
-	//Use this method to parse the state and eventually send it with the following function
-};
-
-// Announce updated State
-amphandler.prototype.pushState = function(state) {
-	var self = this;
-	self.commandRouter.pushConsoleMessage('[' + Date.now() + '] ' + 'amphandler::pushState');
-
-	return self.commandRouter.servicePushState(state, self.servicename);
-};
-
-
-amphandler.prototype.explodeUri = function(uri) {
-	var self = this;
-	var defer=libQ.defer();
-
-	// Mandatory: retrieve all info for a given URI
-
-	return defer.promise;
-};
-
-amphandler.prototype.getAlbumArt = function (data, path) {
-
-	var artist, album;
-
-	if (data != undefined && data.path != undefined) {
-		path = data.path;
-	}
-
-	var web;
-
-	if (data != undefined && data.artist != undefined) {
-		artist = data.artist;
-		if (data.album != undefined)
-			album = data.album;
-		else album = data.artist;
-
-		web = '?web=' + nodetools.urlEncode(artist) + '/' + nodetools.urlEncode(album) + '/large'
-	}
-
-	var url = '/albumart';
-
-	if (web != undefined)
-		url = url + web;
-
-	if (web != undefined && path != undefined)
-		url = url + '&';
-	else if (path != undefined)
-		url = url + '?';
-
-	if (path != undefined)
-		url = url + 'path=' + nodetools.urlEncode(path);
-
-	return url;
-};
-
-
-
-
-
-amphandler.prototype.search = function (query) {
-	var self=this;
-	var defer=libQ.defer();
-
-	// Mandatory, search. You can divide the search in sections using following functions
-
-	return defer.promise;
-};
-
-amphandler.prototype._searchArtists = function (results) {
-
-};
-
-amphandler.prototype._searchAlbums = function (results) {
-
-};
-
-amphandler.prototype._searchPlaylists = function (results) {
-
-
-};
-
-amphandler.prototype._searchTracks = function (results) {
-
-};
-
-amphandler.prototype.goto=function(data){
-    var self=this
-    var defer=libQ.defer()
-
-// Handle go to artist and go to album function
-
-     return defer.promise;
+amphandler.prototype.setConf = function (varName, varValue) {
+    this.config.set(varName, varValue);
+    return libQ.resolve();
 };
