@@ -140,3 +140,25 @@ amphandler.prototype.setConf = function (varName, varValue) {
     this.config.set(varName, varValue);
     return libQ.resolve();
 };
+
+amphandler.prototype.sendIr = function (data) {
+    var self = this;
+
+    var action = data && data.action ? data.action : null;
+    if (!action) return libQ.resolve();
+
+    var map = {
+        power: 'power.ir',
+        volUp: 'vol_up.ir',
+        volDown: 'vol_down.ir',
+        linePhono: 'line_phono.ir',
+        lineCd: 'line_cd.ir',
+        lineOne: 'line_one.ir',
+        lineTwo: 'line_two.ir'
+    };
+
+    var file = map[action];
+    if (!file) return libQ.resolve();
+
+    return self._sendIrFile(file);
+};

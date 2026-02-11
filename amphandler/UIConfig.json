@@ -5,7 +5,7 @@
   },
   "sections": [
     {
-      "id": "power",
+      "id": "power_section",
       "element": "section",
       "label": "Power",
       "icon": "fa-power-off",
@@ -21,15 +21,18 @@
           "label": "Power",
           "icon": "fa-power-off",
           "onClick": {
-            "type": "controller",
-            "controller": "user_interface/amphandler",
-            "method": "setUIConfig"
+            "type": "plugin",
+            "endpoint": "user_interface/amphandler",
+            "method": "sendIr",
+            "data": {
+              "action": "power"
+            }
           }
         }
       ]
     },
     {
-      "id": "volume",
+      "id": "volume_section",
       "element": "section",
       "label": "Volume",
       "icon": "fa-volume-up",
@@ -45,9 +48,12 @@
           "label": "Volume +",
           "icon": "fa-plus",
           "onClick": {
-            "type": "controller",
-            "controller": "user_interface/amphandler",
-            "method": "setUIConfig"
+            "type": "plugin",
+            "endpoint": "user_interface/amphandler",
+            "method": "sendIr",
+            "data": {
+              "action": "volUp"
+            }
           }
         },
         {
@@ -56,15 +62,18 @@
           "label": "Volume -",
           "icon": "fa-minus",
           "onClick": {
-            "type": "controller",
-            "controller": "user_interface/amphandler",
-            "method": "setUIConfig"
+            "type": "plugin",
+            "endpoint": "user_interface/amphandler",
+            "method": "sendIr",
+            "data": {
+              "action": "volDown"
+            }
           }
         }
       ]
     },
     {
-      "id": "sources",
+      "id": "sources_section",
       "element": "section",
       "label": "Sources",
       "icon": "fa-exchange",
@@ -80,9 +89,12 @@
           "label": "PHONO",
           "icon": "fa-dot-circle-o",
           "onClick": {
-            "type": "controller",
-            "controller": "user_interface/amphandler",
-            "method": "setUIConfig"
+            "type": "plugin",
+            "endpoint": "user_interface/amphandler",
+            "method": "sendIr",
+            "data": {
+              "action": "linePhono"
+            }
           }
         },
         {
@@ -91,9 +103,12 @@
           "label": "CD",
           "icon": "fa-music",
           "onClick": {
-            "type": "controller",
-            "controller": "user_interface/amphandler",
-            "method": "setUIConfig"
+            "type": "plugin",
+            "endpoint": "user_interface/amphandler",
+            "method": "sendIr",
+            "data": {
+              "action": "lineCd"
+            }
           }
         },
         {
@@ -102,9 +117,12 @@
           "label": "LINE 1",
           "icon": "fa-sign-in",
           "onClick": {
-            "type": "controller",
-            "controller": "user_interface/amphandler",
-            "method": "setUIConfig"
+            "type": "plugin",
+            "endpoint": "user_interface/amphandler",
+            "method": "sendIr",
+            "data": {
+              "action": "lineOne"
+            }
           }
         },
         {
@@ -113,9 +131,12 @@
           "label": "LINE 2",
           "icon": "fa-sign-in",
           "onClick": {
-            "type": "controller",
-            "controller": "user_interface/amphandler",
-            "method": "setUIConfig"
+            "type": "plugin",
+            "endpoint": "user_interface/amphandler",
+            "method": "sendIr",
+            "data": {
+              "action": "lineTwo"
+            }
           }
         }
       ]
